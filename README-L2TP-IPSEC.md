@@ -14,7 +14,7 @@ L2TP/IPsec - это комбинация двух протоколов:
 
 ```bash
 # Загрузите файлы на сервер
-wget https://ваш-сервер/l2tp-ipsec-setup.sh
+wget https://github.com/dukov1975/l2tp-ipsec/blob/main/l2tp-ipsec-setup.sh
 wget https://ваш-сервер/vpn-management.sh
 
 # Или создайте их вручную, скопировав содержимое
