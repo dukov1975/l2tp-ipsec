@@ -113,7 +113,7 @@ show_firewall() {
 # Меню
 while true; do
     echo -e "\n${GREEN}╔════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  Manage L2TP/IPsec VPN Server ║${NC}"
+    echo -e "${GREEN}║  Manage L2TP/IPsec VPN Server      ║${NC}"
     echo -e "${GREEN}╚════════════════════════════════════╝${NC}\n"
     echo "1) Show status"
     echo "2) Add user"
