@@ -26,8 +26,8 @@ show_status() {
     echo -e "\n${YELLOW}Active connections:${NC}"
     ipsec statusall | grep -i "established" || echo "No active IPsec tunnels"
     
-    echo -e "\n${YELLOW}Интерфейсы PPP:${NC}"
-    ip addr show | grep -E "ppp|192.168.42" || echo "No active PPP connections"
+    echo -e "\n${YELLOW}Interfaces PPP:${NC}"
+    ip addr show | grep -E "ppp|10.1.1" || echo "No active PPP connections"
 }
 
 add_user() {
