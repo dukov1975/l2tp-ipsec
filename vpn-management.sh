@@ -137,6 +137,6 @@ while true; do
         7) show_config ;;
         8) show_firewall ;;
         9) exit 0 ;;
-        *) echo -e "${RED}Неверный выбор${NC}" ;;
+        *) echo -e "${RED}Wrong choice${NC}" ;;
     esac
 done
