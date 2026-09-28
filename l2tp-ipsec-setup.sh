@@ -11,11 +11,11 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== Установка L2TP/IPsec VPN Server ===${NC}"
+echo -e "${GREEN}=== Setup L2TP/IPsec VPN Server ===${NC}"
 
 # Проверка прав root
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}Этот скрипт должен быть запущен от root${NC}" 
+   echo -e "${RED}Run from root${NC}" 
    exit 1
 fi
 
@@ -23,38 +23,38 @@ fi
 SERVER_IP=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1' | head -n 1)
 EXTERNAL_IP=$(curl -s ifconfig.me || echo "$SERVER_IP")
 
-echo -e "${YELLOW}IP адрес сервера: $SERVER_IP${NC}"
-echo -e "${YELLOW}Внешний IP: $EXTERNAL_IP${NC}"
+echo -e "${YELLOW}IP adress server: $SERVER_IP${NC}"
+echo -e "${YELLOW}External IP: $EXTERNAL_IP${NC}"
 
 # Параметры VPN (можно изменить)
-read -p "Введите PSK (Pre-Shared Key) для IPsec [или нажмите Enter для генерации]: " VPN_IPSEC_PSK
+read -p "Enter PSK (Pre-Shared Key) for IPsec [or press Enter for generation]: " VPN_IPSEC_PSK
 if [ -z "$VPN_IPSEC_PSK" ]; then
     VPN_IPSEC_PSK=$(openssl rand -base64 32)
-    echo -e "${GREEN}Сгенерирован PSK: $VPN_IPSEC_PSK${NC}"
+    echo -e "${GREEN}Generation PSK: $VPN_IPSEC_PSK${NC}"
 fi
 
-read -p "Введите имя пользователя VPN [default: vpnuser]: " VPN_USER
+read -p "Enter user name VPN [default: vpnuser]: " VPN_USER
 VPN_USER=${VPN_USER:-vpnuser}
 
-read -p "Введите пароль для $VPN_USER [или нажмите Enter для генерации]: " VPN_PASSWORD
+read -p "Enter password $VPN_USER [or press Enter for generation]: " VPN_PASSWORD
 if [ -z "$VPN_PASSWORD" ]; then
     VPN_PASSWORD=$(openssl rand -base64 16)
-    echo -e "${GREEN}Сгенерирован пароль: $VPN_PASSWORD${NC}"
+    echo -e "${GREEN}Generation password: $VPN_PASSWORD${NC}"
 fi
 
 # Диапазон IP для VPN клиентов
-VPN_IP_RANGE="192.168.42.10-192.168.42.250"
-VPN_LOCAL_IP="192.168.42.1"
+VPN_IP_RANGE="10.1.1.10-10.1.1.20"
+VPN_LOCAL_IP="10.1.1.8"
 
 # Определение сетевого интерфейса
 NET_IFACE=$(ip route | grep default | awk '{print $5}' | head -n 1)
-echo -e "${YELLOW}Сетевой интерфейс: $NET_IFACE${NC}"
+echo -e "${YELLOW}Network interface: $NET_IFACE${NC}"
 
-echo -e "${GREEN}Обновление системы...${NC}"
+echo -e "${GREEN}Update system...${NC}"
 apt-get update
 apt-get upgrade -y
 
-echo -e "${GREEN}Установка необходимых пакетов...${NC}"
+echo -e "${GREEN}Setting requared packages...${NC}"
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
     strongswan \
     xl2tpd \
@@ -64,7 +64,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
     iptables-persistent \
     netfilter-persistent
 
-echo -e "${GREEN}Настройка системных параметров...${NC}"
+echo -e "${GREEN}Setting system parameters...${NC}"
 # Включение IP forwarding и отключение send_redirects
 cat > /etc/sysctl.d/99-vpn.conf <<EOF
 # IP Forwarding
@@ -87,7 +87,7 @@ EOF
 
 sysctl -p /etc/sysctl.d/99-vpn.conf
 
-echo -e "${GREEN}Настройка IPsec (strongSwan)...${NC}"
+echo -e "${GREEN}Setting IPsec (strongSwan)...${NC}"
 # Бэкап оригинальных файлов
 cp /etc/ipsec.conf /etc/ipsec.conf.bak 2>/dev/null || true
 cp /etc/ipsec.secrets /etc/ipsec.secrets.bak 2>/dev/null || true
@@ -127,7 +127,7 @@ EOF
 
 chmod 600 /etc/ipsec.secrets
 
-echo -e "${GREEN}Настройка L2TP (xl2tpd)...${NC}"
+echo -e "${GREEN}Setting L2TP (xl2tpd)...${NC}"
 # Бэкап оригинального файла
 cp /etc/xl2tpd/xl2tpd.conf /etc/xl2tpd/xl2tpd.conf.bak 2>/dev/null || true
 
@@ -178,19 +178,19 @@ EOF
 
 chmod 600 /etc/ppp/chap-secrets
 
-echo -e "${GREEN}Настройка firewall (iptables)...${NC}"
+echo -e "${GREEN}Setting firewall (iptables)...${NC}"
 
 # Очистка старых правил для VPN
-iptables -t nat -D POSTROUTING -s 192.168.42.0/24 -o $NET_IFACE -j MASQUERADE 2>/dev/null || true
-iptables -D FORWARD -s 192.168.42.0/24 -j ACCEPT 2>/dev/null || true
-iptables -D FORWARD -d 192.168.42.0/24 -j ACCEPT 2>/dev/null || true
+iptables -t nat -D POSTROUTING -s 10.1.1.0/24 -o $NET_IFACE -j MASQUERADE 2>/dev/null || true
+iptables -D FORWARD -s 10.1.1.0/24 -j ACCEPT 2>/dev/null || true
+iptables -D FORWARD -d 10.1.1.0/24 -j ACCEPT 2>/dev/null || true
 
 # Добавление правил NAT для VPN клиентов
-iptables -t nat -A POSTROUTING -s 192.168.42.0/24 -o $NET_IFACE -j MASQUERADE
+iptables -t nat -A POSTROUTING -s 10.1.1.0/24 -o $NET_IFACE -j MASQUERADE
 
 # Разрешение форвардинга для VPN
-iptables -A FORWARD -s 192.168.42.0/24 -j ACCEPT
-iptables -A FORWARD -d 192.168.42.0/24 -j ACCEPT
+iptables -A FORWARD -s 10.1.1.0/24 -j ACCEPT
+iptables -A FORWARD -d 10.1.1.0/24 -j ACCEPT
 
 # Разрешение VPN трафика
 iptables -A INPUT -p udp --dport 500 -j ACCEPT
@@ -204,7 +204,7 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 # Сохранение правил iptables
 netfilter-persistent save
 
-echo -e "${GREEN}Перезапуск сервисов...${NC}"
+echo -e "${GREEN}Restart services...${NC}"
 systemctl restart strongswan-starter
 systemctl enable strongswan-starter
 systemctl restart xl2tpd
@@ -212,7 +212,7 @@ systemctl enable xl2tpd
 
 # Проверка статуса
 sleep 3
-echo -e "\n${GREEN}=== Статус сервисов ===${NC}"
+echo -e "\n${GREEN}=== Status services ===${NC}"
 systemctl status strongswan-starter --no-pager | head -n 5
 systemctl status xl2tpd --no-pager | head -n 5
 
@@ -223,17 +223,17 @@ cat > $CONFIG_FILE <<EOF
 L2TP/IPsec VPN Server Configuration
 ========================================
 
-Внешний IP сервера: $EXTERNAL_IP
-Локальный IP сервера: $SERVER_IP
+External IP of server: $EXTERNAL_IP
+Local IP server: $SERVER_IP
 
 IPsec PSK: $VPN_IPSEC_PSK
 
-VPN Пользователи:
-  Имя: $VPN_USER
-  Пароль: $VPN_PASSWORD
+VPN users:
+  login: $VPN_USER
+  password: $VPN_PASSWORD
 
-Диапазон IP для клиентов: $VPN_IP_RANGE
-Шлюз VPN: $VPN_LOCAL_IP
+Range IP for clients: $VPN_IP_RANGE
+Gateway VPN: $VPN_LOCAL_IP
 
 DNS серверы: 8.8.8.8, 8.8.4.4
 
